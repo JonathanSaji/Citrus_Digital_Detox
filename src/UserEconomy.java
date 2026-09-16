@@ -25,6 +25,12 @@ public class UserEconomy {
         }
         return false;
     }
+    public double getTotalProductiveMinutes() {
+        return (coins * 6.0) + (totalProductiveSeconds / 60.0);
+    }
+    public void setCoins(int coins) { this.coins = coins; }
+    public double getTotalProductiveSecondsRaw() { return totalProductiveSeconds; }
+    public void setTotalProductiveSecondsRaw(double seconds) { this.totalProductiveSeconds = seconds; }
 
     public int getCoins() { return coins; }
     public double getRemainingSecondsToNextCoin() { return SECONDS_PER_COIN - totalProductiveSeconds; }

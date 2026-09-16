@@ -50,7 +50,7 @@ public class MainDashboard extends JFrame {
         mainContentPanel.add(createDashboardPanel(), "Dashboard");
         mainContentPanel.add(new BlockListPanel(blockManager),"Block List");
         mainContentPanel.add(new ShopPanel(blockManager, economy), "Shop");
-        mainContentPanel.add(createDummyPanel("Statistics View"), "Statistics");
+        mainContentPanel.add(new StatisticsPanel(blockManager, economy), "Statistics");
 
         // Top Bar (Coin Balance)
         JPanel topBar = new JPanel(new FlowLayout(FlowLayout.RIGHT, 20, 10));
@@ -93,12 +93,41 @@ public class MainDashboard extends JFrame {
         panel.setBackground(new Color(253, 204, 33));
         panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
-        panel.add(createCard("Productive Time", "0h 0m"));
-        panel.add(createCard("Active Blocks", "0"));
+        JLabel productiveValueLabel = new JLabel("0h 0m", SwingConstants.CENTER);
+        JLabel activeBlocksValueLabel = new JLabel("0", SwingConstants.CENTER);
+
+        panel.add(createLiveCard("Productive Time", productiveValueLabel));
+        panel.add(createLiveCard("Active Blocks", activeBlocksValueLabel));
         panel.add(createCard("Current Streak", "1 Day 🔥"));
         panel.add(createCard("Daily Goal", "2h 0m Target"));
 
+        javax.swing.Timer dashboardRefreshTimer = new javax.swing.Timer(1000, e -> {
+            int totalMinutes = (int) economy.getTotalProductiveMinutes();
+            int hours = totalMinutes / 60;
+            int minutes = totalMinutes % 60;
+            productiveValueLabel.setText(hours + "h " + minutes + "m");
+            activeBlocksValueLabel.setText(String.valueOf(blockManager.countActiveBlocks()));
+        });
+        dashboardRefreshTimer.start();
+
         return panel;
+    }
+
+    private JPanel createLiveCard(String title, JLabel valLbl) {
+        JPanel card = new JPanel(new BorderLayout());
+        card.setBackground(new Color(20, 20, 20));
+        card.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        JLabel titleLbl = new JLabel(title);
+        titleLbl.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        titleLbl.setForeground(new Color(180, 180, 180));
+
+        valLbl.setFont(new Font("SansSerif", Font.BOLD, 26));
+        valLbl.setForeground(Color.WHITE);
+
+        card.add(titleLbl, BorderLayout.NORTH);
+        card.add(valLbl, BorderLayout.CENTER);
+        return card;
     }
 
     private JPanel createCard(String title, String value) {

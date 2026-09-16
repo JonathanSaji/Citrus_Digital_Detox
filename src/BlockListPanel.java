@@ -11,6 +11,9 @@ public class BlockListPanel extends JPanel {
         setLayout(new BorderLayout());
         setBackground(new Color(253, 204, 33));
 
+        javax.swing.Timer listRefreshTimer = new javax.swing.Timer(1000, e -> refreshList());
+        listRefreshTimer.start();
+
         for (Block b : blockManager.getBlocks()) {
             String status = b.isActive() ? "[Active]" : "[Inactive]";
             listModel.addElement(status + " " + b.getTargetName() + " (" + b.getLockType() + ")");
@@ -71,7 +74,9 @@ public class BlockListPanel extends JPanel {
     private void refreshList() {
         listModel.clear();
         for (Block b : blockManager.getBlocks()) {
-            listModel.addElement(b.getTargetName() + " (" + b.getLockType() + ")");
+            String enabled = b.isActive() ? "[Enabled]" : "[Disabled]";
+            String live = b.isCurrentlyBlocking() ? "[Blocking Now]" : "[Not Blocking]";
+            listModel.addElement(enabled + " " + live + " " + b.getTargetName() + " (" + b.getLockType() + ")");
         }
     }
 }
