@@ -72,22 +72,29 @@ public class BlockOverlay extends JFrame {
             delayTimer.start();
 
         } else if (block.getLockType() == LockType.RANDOM_TEXT) {
-            String challenge = "focus".repeat(block.getChallengeLength() / 5 + 1).substring(0, block.getChallengeLength());
-            JLabel challengeLabel = new JLabel(challenge);
-            challengeLabel.setForeground(Color.WHITE);
-            JTextField inputField = new JTextField(20);
+            JLabel instructionLabel = new JLabel("Type " + block.getChallengeLength() + " different words (2+ letters each, space-separated):");
+            instructionLabel.setForeground(Color.WHITE);
+            JTextField inputField = new JTextField(25);
+            JLabel errorLabel = new JLabel(" ");
+            errorLabel.setForeground(new Color(230, 80, 80));
             JButton checkButton = new JButton("Submit");
+
             checkButton.addActionListener(e -> {
-                if (inputField.getText().equals(challenge)) {
+                if (block.validateRandomTextInput(inputField.getText())) {
                     blockManager.addPass(new Pass(block.getTargetName(), 10));
                     dispose();
+                } else {
+                    errorLabel.setText("Try again — check word count, length, and duplicates.");
                 }
             });
-            add(challengeLabel, gbc);
+
+            add(instructionLabel, gbc);
             gbc.gridy = 3;
             add(inputField, gbc);
             gbc.gridy = 4;
             add(checkButton, gbc);
+            gbc.gridy = 5;
+            add(errorLabel, gbc);
         }
     }
 

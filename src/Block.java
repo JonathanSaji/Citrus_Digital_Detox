@@ -1,6 +1,7 @@
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.io.Serializable;
+import java.util.HashSet;
 import java.util.Set;
 
 // Represents a website or app block rule
@@ -8,6 +9,7 @@ public class Block implements Serializable {
     private String targetName; // e.g., "YouTube"
     private LockType lockType;   // "Timer", "Time Range", "Random Text", "Delay", "Bedtime"
     private boolean active;
+    private static final long serialVersionUID = 1L;
 
     private int timesTriggered = 0;
 
@@ -114,5 +116,17 @@ public class Block implements Serializable {
             default:
                 return false;
         }
+    }
+    public boolean validateRandomTextInput(String input) {
+        if (input == null) return false;
+        String[] words = input.trim().split("\\s+");
+        if (words.length != challengeLength) return false;
+
+        Set<String> seenWords = new HashSet<>();
+        for (String word : words) {
+            if (word.length() < 2) return false;
+            if (!seenWords.add(word.toLowerCase())) return false; // duplicate found
+        }
+        return true;
     }
 }

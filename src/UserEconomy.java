@@ -2,8 +2,7 @@
 public class UserEconomy {
     private int coins;
     private double totalProductiveSeconds;
-    private static final int SECONDS_PER_COIN = 360; // 6 minutes
-
+    private int secondsPerCoin = 360; // 6 minutes, now configurable
     public UserEconomy() {
         this.coins = 0;
         this.totalProductiveSeconds = 0;
@@ -11,10 +10,10 @@ public class UserEconomy {
 
     public void addProductiveTime(double seconds) {
         this.totalProductiveSeconds += seconds;
-        if (this.totalProductiveSeconds >= SECONDS_PER_COIN) {
-            int earnedCoins = (int) (this.totalProductiveSeconds / SECONDS_PER_COIN);
+        if (this.totalProductiveSeconds >= secondsPerCoin) {
+            int earnedCoins = (int) (this.totalProductiveSeconds / secondsPerCoin);
             this.coins += earnedCoins;
-            this.totalProductiveSeconds %= SECONDS_PER_COIN; // Keep remainder
+            this.totalProductiveSeconds %= secondsPerCoin;
         }
     }
 
@@ -32,6 +31,9 @@ public class UserEconomy {
     public double getTotalProductiveSecondsRaw() { return totalProductiveSeconds; }
     public void setTotalProductiveSecondsRaw(double seconds) { this.totalProductiveSeconds = seconds; }
 
+    public int getSecondsPerCoin() { return secondsPerCoin; }
+    public void setSecondsPerCoin(int secondsPerCoin) { this.secondsPerCoin = secondsPerCoin; }
+
     public int getCoins() { return coins; }
-    public double getRemainingSecondsToNextCoin() { return SECONDS_PER_COIN - totalProductiveSeconds; }
+    public double getRemainingSecondsToNextCoin() { return secondsPerCoin - totalProductiveSeconds; }
 }

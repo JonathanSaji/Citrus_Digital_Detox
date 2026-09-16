@@ -4,7 +4,7 @@ public class SaveManager {
     private static final String FILE_NAME = "citrus_save.dat";
 
     public static void save(BlockManager blockManager, UserEconomy economy) {
-        SaveData data = new SaveData(blockManager.getBlocks(), economy.getCoins(), economy.getTotalProductiveSecondsRaw());
+        SaveData data = new SaveData(blockManager.getBlocks(), economy.getCoins(), economy.getTotalProductiveSecondsRaw(), economy.getSecondsPerCoin());
         try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(FILE_NAME))) {
             out.writeObject(data);
         } catch (IOException e) {
@@ -23,6 +23,7 @@ public class SaveManager {
             }
             economy.setCoins(data.getCoins());
             economy.setTotalProductiveSecondsRaw(data.getTotalProductiveSeconds());
+            economy.setSecondsPerCoin(data.getSecondsPerCoin());
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
         }
