@@ -1,6 +1,6 @@
-## Detox App: Reclaim Your Focus
+## Citrus: Reclaim Your Focus
 
-Welcome to the **Detox App**, a Java-based productivity tool designed to help you eliminate digital distractions and build healthier screen habits. Built using IntelliJ, this application actively blocks distracting websites and gamifies your focus time to keep you motivated.
+Welcome to the **Citrus App**, a Java-based productivity tool designed to help you eliminate digital distractions and build healthier screen habits. Built using IntelliJ, this application actively blocks distracting websites and gamifies your focus time to keep you motivated.
 
 ---
 
