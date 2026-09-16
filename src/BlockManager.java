@@ -1,16 +1,17 @@
-import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class BlockManager {
-    private List<Block> blocks = new ArrayList<>();
-    private List<Pass> passes = new ArrayList<>();
+    private final List<Block> blocks = new CopyOnWriteArrayList<>();
+    private final List<Pass> passes = new CopyOnWriteArrayList<>();
 
     public void addPass(Pass pass) {
         passes.add(pass);
     }
     private boolean hasActivePass(String targetName) {
+        passes.removeIf(pass -> !pass.isActive());
         for (Pass p : passes) {
-            if (p.isActive() && targetName.toLowerCase().contains(p.getTargetName().toLowerCase())) {
+            if (p.isActive() && p.getTargetName().equalsIgnoreCase(targetName)) {
                 return true;
             }
         }
@@ -40,11 +41,14 @@ public class BlockManager {
      * return the matching Block if one should trigger an overlay, else null.
      */
     public Block findMatchingBlock(String activeWindowTitle) {
-        if (activeWindowTitle == null) return null;
+        if (activeWindowTitle == null || activeWindowTitle.isBlank()) return null;
         String lower = activeWindowTitle.toLowerCase();
 
         for (Block b : blocks) {
-            if (b.isCurrentlyBlocking() && lower.contains(b.getTargetName().toLowerCase()) && !hasActivePass(b.getTargetName())) {                return b;
+            if (b.isCurrentlyBlocking()
+                    && lower.contains(b.getTargetName().toLowerCase())
+                    && !hasActivePass(b.getTargetName())) {
+                return b;
             }
         }
         return null;

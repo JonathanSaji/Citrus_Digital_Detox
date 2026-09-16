@@ -19,7 +19,7 @@ public class BlockListPanel extends JPanel {
             listModel.addElement(status + " " + b.getTargetName() + " (" + b.getLockType() + ")");
         }
 
-        JList<String> blockList = new JList<>(listModel);
+        blockList = new JList<>(listModel);
         blockList.setBackground(new Color(20, 20, 20));
         blockList.setForeground(Color.WHITE);
         blockList.setFont(new Font("SansSerif", Font.PLAIN, 16));
@@ -31,8 +31,6 @@ public class BlockListPanel extends JPanel {
         createButton.setForeground(Color.WHITE);
         createButton.setFont(new Font("SansSerif", Font.BOLD, 14));
         createButton.setFocusPainted(false);
-        add(createButton, BorderLayout.SOUTH);
-
         JPanel buttonPanel = new JPanel(new GridLayout(1, 3, 10, 10));
         buttonPanel.setBackground(new Color(253, 204, 33));
         buttonPanel.add(createButton);
@@ -57,7 +55,7 @@ public class BlockListPanel extends JPanel {
         deleteButton.addActionListener(e -> {
             int index = blockList.getSelectedIndex();
             if (index != -1) {
-                blockManager.getBlocks().remove(index);
+                blockManager.removeBlock(blockManager.getBlocks().get(index));
                 refreshList();
             }
         });

@@ -5,6 +5,7 @@ public class StatisticsPanel extends JPanel {
     private BlockManager blockManager;
     private UserEconomy economy;
     private DefaultTableModel tableModel;
+    private JPanel proportionBar;
 
     public StatisticsPanel(BlockManager blockManager, UserEconomy economy) {
         this.blockManager = blockManager;
@@ -16,20 +17,21 @@ public class StatisticsPanel extends JPanel {
         add(createProportionBar(), BorderLayout.NORTH);
         add(createTriggerTable(), BorderLayout.CENTER);
 
-        javax.swing.Timer statsRefreshTimer = new javax.swing.Timer(1000, e -> refreshTable());
+        javax.swing.Timer statsRefreshTimer = new javax.swing.Timer(1000, e -> {
+            refreshTable();
+            proportionBar.repaint();
+        });
         statsRefreshTimer.start();
 
     }
 
     private JPanel createProportionBar() {
-        double productiveMinutes = economy.getTotalProductiveMinutes();
-        double goalMinutes = 120.0; // matches Dashboard's "2h 0m Target"
-        double ratio = Math.min(productiveMinutes / goalMinutes, 1.0);
-
-        JPanel barPanel = new JPanel() {
+        proportionBar = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
+                double goalMinutes = 120.0;
+                double ratio = Math.min(economy.getTotalProductiveMinutes() / goalMinutes, 1.0);
                 int filledWidth = (int) (getWidth() * ratio);
                 g.setColor(new Color(20, 20, 20));
                 g.fillRect(0, 0, getWidth(), getHeight());
@@ -37,8 +39,8 @@ public class StatisticsPanel extends JPanel {
                 g.fillRect(0, 0, filledWidth, getHeight());
             }
         };
-        barPanel.setPreferredSize(new Dimension(400, 30));
-        return barPanel;
+        proportionBar.setPreferredSize(new Dimension(400, 30));
+        return proportionBar;
     }
 
     private JScrollPane createTriggerTable() {

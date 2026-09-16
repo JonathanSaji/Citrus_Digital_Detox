@@ -1,6 +1,7 @@
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.io.Serializable;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -43,8 +44,8 @@ public class Block implements Serializable {
 
 
     //Getters/Setters
-    public int getTimesTriggered() { return timesTriggered; }
-    public void incrementTriggerCount() { timesTriggered++; }
+    public synchronized int getTimesTriggered() { return timesTriggered; }
+    public synchronized void incrementTriggerCount() { timesTriggered++; }
 
     public String getTargetName() { return targetName; }
     public LockType getLockType() { return lockType; }
@@ -58,8 +59,16 @@ public class Block implements Serializable {
     public void setRangeStart(LocalTime rangeStart) { this.rangeStart = rangeStart; }
     public LocalTime getRangeEnd() { return rangeEnd; }
     public void setRangeEnd(LocalTime rangeEnd) { this.rangeEnd = rangeEnd; }
-    public Set<java.time.DayOfWeek> getActiveDays() { return activeDays; }
-    public void setActiveDays(Set<java.time.DayOfWeek> activeDays) { this.activeDays = activeDays; }
+    public Set<java.time.DayOfWeek> getActiveDays() {
+        return activeDays == null ? null : activeDays.isEmpty()
+                ? EnumSet.noneOf(java.time.DayOfWeek.class)
+                : EnumSet.copyOf(activeDays);
+    }
+    public void setActiveDays(Set<java.time.DayOfWeek> activeDays) {
+        this.activeDays = activeDays == null || activeDays.isEmpty()
+                ? null
+                : EnumSet.copyOf(activeDays);
+    }
 
     public int getChallengeLength() { return challengeLength; }
     public void setChallengeLength(int challengeLength) { this.challengeLength = challengeLength; }
@@ -82,13 +91,21 @@ public class Block implements Serializable {
     public boolean isCurrentlyBlocking() {
         if (!active) return false;
 
+        LocalDateTime dateTimeNow = LocalDateTime.now();
+
         switch (lockType) {
             case TIMER:
-                return unlockAt != null && LocalDateTime.now().isBefore(unlockAt);
+                return unlockAt != null && dateTimeNow.isBefore(unlockAt);
 
             case TIME_RANGE:
-                LocalTime now = LocalTime.now();
-                boolean dayOk = activeDays == null || activeDays.contains(LocalDateTime.now().getDayOfWeek());
+                if (rangeStart == null || rangeEnd == null) return false;
+                LocalTime now = dateTimeNow.toLocalTime();
+                if (rangeStart.equals(rangeEnd)) return false;
+                java.time.DayOfWeek scheduleDay = dateTimeNow.getDayOfWeek();
+                if (rangeStart.isAfter(rangeEnd) && now.isBefore(rangeEnd)) {
+                    scheduleDay = scheduleDay.minus(1);
+                }
+                boolean dayOk = activeDays == null || activeDays.contains(scheduleDay);
                 if (!dayOk) return false;
                 if (rangeStart.isBefore(rangeEnd)) {
                     return !now.isBefore(rangeStart) && now.isBefore(rangeEnd);
@@ -98,7 +115,9 @@ public class Block implements Serializable {
                 }
 
             case BEDTIME:
-                LocalTime t = LocalTime.now();
+                if (bedStart == null || bedEnd == null) return false;
+                LocalTime t = dateTimeNow.toLocalTime();
+                if (bedStart.equals(bedEnd)) return false;
                 if (bedStart.isBefore(bedEnd)) {
                     return !t.isBefore(bedStart) && t.isBefore(bedEnd);
                 } else {

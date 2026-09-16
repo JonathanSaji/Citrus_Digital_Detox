@@ -1,5 +1,7 @@
 import javax.swing.*;
 import java.awt.*;
+import java.time.DayOfWeek;
+import java.util.EnumSet;
 
 public class BlockDialog extends JDialog {
     private BlockManager blockManager;
@@ -18,11 +20,12 @@ public class BlockDialog extends JDialog {
     private JSpinner challengeLengthSpinner;
     private JSpinner delaySecondsSpinner;
     private JPasswordField emergencyPasswordField;
+    private JCheckBox[] activeDayBoxes;
 
     public BlockDialog(BlockManager blockManager) {
         this.blockManager = blockManager;
         setTitle("Create Block");
-        setSize(350, 250);
+        setSize(430, 300);
         setModal(true);
         setLocationRelativeTo(null);
 
@@ -40,17 +43,29 @@ public class BlockDialog extends JDialog {
         timerPanel.add(timerMinutesSpinner);
         dynamicPanel.add(timerPanel, "TIMER");
 
-        JPanel rangePanel = new JPanel(new GridLayout(2, 2, 10, 10));
-        rangePanel.add(new JLabel("Start Hour (0-23):"));
+        JPanel rangePanel = new JPanel(new BorderLayout(10, 10));
+        JPanel rangeTimesPanel = new JPanel(new GridLayout(2, 2, 10, 10));
+        rangeTimesPanel.add(new JLabel("Start Hour (0-23):"));
         rangeStartSpinner = new JSpinner(new SpinnerNumberModel(9, 0, 23, 1));
-        rangePanel.add(rangeStartSpinner);
-        rangePanel.add(new JLabel("End Hour (0-23):"));
+        rangeTimesPanel.add(rangeStartSpinner);
+        rangeTimesPanel.add(new JLabel("End Hour (0-23):"));
         rangeEndSpinner = new JSpinner(new SpinnerNumberModel(17, 0, 23, 1));
-        rangePanel.add(rangeEndSpinner);
+        rangeTimesPanel.add(rangeEndSpinner);
+        rangePanel.add(rangeTimesPanel, BorderLayout.NORTH);
+
+        JPanel daysPanel = new JPanel(new GridLayout(2, 4, 5, 5));
+        daysPanel.add(new JLabel("Active days:"));
+        activeDayBoxes = new JCheckBox[DayOfWeek.values().length];
+        for (DayOfWeek day : DayOfWeek.values()) {
+            JCheckBox dayBox = new JCheckBox(day.name().substring(0, 3), true);
+            activeDayBoxes[day.getValue() - 1] = dayBox;
+            daysPanel.add(dayBox);
+        }
+        rangePanel.add(daysPanel, BorderLayout.CENTER);
         dynamicPanel.add(rangePanel, "TIME_RANGE");
 
         JPanel textPanel = new JPanel(new GridLayout(1, 2, 10, 10));
-        textPanel.add(new JLabel("Characters to type:"));
+        textPanel.add(new JLabel("Different words to type:"));
         challengeLengthSpinner = new JSpinner(new SpinnerNumberModel(20, 5, 200, 5));
         textPanel.add(challengeLengthSpinner);
         dynamicPanel.add(textPanel, "RANDOM_TEXT");
@@ -96,9 +111,12 @@ public class BlockDialog extends JDialog {
         topPanel.add(lockTypeBox);
 
         saveButton.addActionListener(e -> {
-            String name = nameField.getText();
+            String name = nameField.getText().trim();
             LockType type = (LockType) lockTypeBox.getSelectedItem();
-            if (name.isEmpty()) return;
+            if (name.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Enter a website or app name.");
+                return;
+            }
 
             Block block = new Block(name, type);
 
@@ -112,6 +130,21 @@ public class BlockDialog extends JDialog {
                     int endHour = (int) rangeEndSpinner.getValue();
                     block.setRangeStart(java.time.LocalTime.of(startHour, 0));
                     block.setRangeEnd(java.time.LocalTime.of(endHour, 0));
+                    if (startHour == endHour) {
+                        JOptionPane.showMessageDialog(this, "Start and end hours must be different.");
+                        return;
+                    }
+                    EnumSet<DayOfWeek> activeDays = EnumSet.noneOf(DayOfWeek.class);
+                    for (DayOfWeek day : DayOfWeek.values()) {
+                        if (activeDayBoxes[day.getValue() - 1].isSelected()) {
+                            activeDays.add(day);
+                        }
+                    }
+                    if (activeDays.isEmpty()) {
+                        JOptionPane.showMessageDialog(this, "Select at least one active day.");
+                        return;
+                    }
+                    block.setActiveDays(activeDays);
                     break;
                 case BEDTIME:
                     int bedHour = (int) bedStartSpinner.getValue();
@@ -126,7 +159,13 @@ public class BlockDialog extends JDialog {
                     block.setDelaySeconds((int) delaySecondsSpinner.getValue());
                     break;
                 case EMERGENCY:
-                    block.setEmergencyPassword(new String(emergencyPasswordField.getPassword()));
+                    char[] password = emergencyPasswordField.getPassword();
+                    if (password.length == 0) {
+                        JOptionPane.showMessageDialog(this, "Enter an emergency password.");
+                        return;
+                    }
+                    block.setEmergencyPassword(new String(password));
+                    java.util.Arrays.fill(password, '\0');
                     break;
             }
 

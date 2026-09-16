@@ -4,7 +4,12 @@ public class SaveManager {
     private static final String FILE_NAME = "citrus_save.dat";
 
     public static void save(BlockManager blockManager, UserEconomy economy) {
-        SaveData data = new SaveData(blockManager.getBlocks(), economy.getCoins(), economy.getTotalProductiveSecondsRaw(), economy.getSecondsPerCoin());
+        SaveData data = new SaveData(
+                blockManager.getBlocks(),
+                economy.getCoins(),
+                economy.getTotalProductiveSecondsRaw(),
+                economy.getLifetimeProductiveSeconds(),
+                economy.getSecondsPerCoin());
         try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(FILE_NAME))) {
             out.writeObject(data);
         } catch (IOException e) {
@@ -24,6 +29,14 @@ public class SaveManager {
             economy.setCoins(data.getCoins());
             economy.setTotalProductiveSecondsRaw(data.getTotalProductiveSeconds());
             economy.setSecondsPerCoin(data.getSecondsPerCoin());
+            if (data.hasLifetimeProductiveSeconds()) {
+                economy.setLifetimeProductiveSeconds(data.getLifetimeProductiveSeconds());
+            } else {
+                // Save files created before lifetime tracking can only be estimated.
+                economy.setLifetimeProductiveSeconds(
+                        data.getCoins() * (double) data.getSecondsPerCoin()
+                                + data.getTotalProductiveSeconds());
+            }
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
         }

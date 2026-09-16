@@ -2,14 +2,18 @@ import com.sun.jna.platform.win32.Kernel32;
 import com.sun.jna.Native;
 import com.sun.jna.platform.win32.User32;
 import com.sun.jna.platform.win32.WinDef.HWND;
+import javax.swing.SwingUtilities;
 import java.util.Timer;
 import java.util.TimerTask;
 
 public class WindowMonitor {
     private BlockManager blockManager;
-    private BlockOverlay currentOverlay = null;
+    private final Object overlayLock = new Object();
+    private BlockOverlay currentOverlay;
+    private boolean overlayCreationPending;
     private UserEconomy economy;
     private long lastTickTime = System.currentTimeMillis();
+    private Timer monitoringTimer;
 
     public WindowMonitor(BlockManager blockManager, UserEconomy economy) {
         this.blockManager = blockManager;
@@ -23,20 +27,14 @@ public class WindowMonitor {
         return Native.toString(buffer); // convert the title to a string
     }
     public void startMonitoring() {
-        Timer timer = new Timer();
-        timer.scheduleAtFixedRate(new TimerTask() {
+        if (monitoringTimer != null) return;
+
+        monitoringTimer = new Timer("digital-detox-window-monitor", true);
+        monitoringTimer.scheduleAtFixedRate(new TimerTask() {
             public void run() {
                 String title = getActiveWindowTitle();
                 Block match = blockManager.findMatchingBlock(title);
-                if (match != null && currentOverlay == null) {
-                    match.incrementTriggerCount();
-                    System.out.println(match.getTargetName() + " triggered " + match.getTimesTriggered() + " times");
-                    currentOverlay = new BlockOverlay(match, blockManager);
-                }
-                else if (match == null && currentOverlay!=null){
-                    currentOverlay.dispose();
-                    currentOverlay = null;
-                }
+                updateOverlay(match);
                 long now = System.currentTimeMillis();
                 double elapsedSeconds = (now - lastTickTime) / 1000.0;
                 lastTickTime = now;
@@ -46,6 +44,35 @@ public class WindowMonitor {
                 }
             }
         }, 0, 300);
+    }
+
+    private void updateOverlay(Block match) {
+        if (match != null) {
+            synchronized (overlayLock) {
+                if (currentOverlay != null || overlayCreationPending) return;
+                overlayCreationPending = true;
+            }
+
+            match.incrementTriggerCount();
+            SwingUtilities.invokeLater(() -> {
+                synchronized (overlayLock) {
+                    if (!overlayCreationPending) return;
+                    currentOverlay = new BlockOverlay(match, blockManager);
+                    overlayCreationPending = false;
+                }
+            });
+            return;
+        }
+
+        BlockOverlay overlayToClose;
+        synchronized (overlayLock) {
+            overlayCreationPending = false;
+            overlayToClose = currentOverlay;
+            currentOverlay = null;
+        }
+        if (overlayToClose != null) {
+            SwingUtilities.invokeLater(overlayToClose::dispose);
+        }
     }
     public long getIdleSeconds() {
         User32.LASTINPUTINFO lastInputInfo = new User32.LASTINPUTINFO(); // asks windows to keep track of idle time

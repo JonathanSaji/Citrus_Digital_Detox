@@ -1,3 +1,5 @@
+import javax.swing.SwingUtilities;
+
 public class Main {
     public static void main(String[] args) {
         BlockManager blockManager = new BlockManager();
@@ -9,8 +11,9 @@ public class Main {
             SaveManager.save(blockManager, economy);
         }));
 
+        SwingUtilities.invokeLater(() -> new MainDashboard(blockManager, economy));
+
         WindowMonitor monitor = new WindowMonitor(blockManager, economy);
         monitor.startMonitoring();
-        new MainDashboard(blockManager, economy);
     }
 }
