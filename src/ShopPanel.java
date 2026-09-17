@@ -1,43 +1,28 @@
-import javax.swing.*;
-import java.awt.*;
+import javafx.geometry.Pos;
+import javafx.scene.Node;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.VBox;
 
-public class ShopPanel extends JPanel {
-    private BlockManager blockManager;
-    private UserEconomy economy;
-
-    public ShopPanel(BlockManager blockManager, UserEconomy economy) {
-        this.blockManager = blockManager;
-        this.economy = economy;
-        setLayout(new GridLayout(2, 1, 20, 20));
-        setBackground(new Color(253, 204, 33));
-        setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-
-        JPanel passCard = new JPanel(new GridLayout(3, 1, 5, 5));
-        passCard.setBackground(new Color(20, 20, 20));
-        passCard.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
-
-        JLabel titleLabel = new JLabel("YouTube Pass — 10 min");
-        titleLabel.setForeground(Color.WHITE);
-        titleLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
-
-        JLabel priceLabel = new JLabel("Cost: 5 coins");
-        priceLabel.setForeground(new Color(180, 180, 180));
-
-        JButton buyButton = new JButton("Buy");
-        buyButton.setBackground(new Color(230, 180, 20));
-
-        passCard.add(titleLabel);
-        passCard.add(priceLabel);
-        passCard.add(buyButton);
-        add(passCard);
-
-        buyButton.addActionListener(e -> {
-            if (economy.spendCoins(5)) {
-                blockManager.addPass(new Pass("youtube", 10));
-                JOptionPane.showMessageDialog(this, "Pass purchased! 10 minutes unlocked.");
-            } else {
-                JOptionPane.showMessageDialog(this, "Not enough coins!");
-            }
+public class ShopPanel {
+    private final BlockManager blockManager;
+    private final UserEconomy economy;
+    public ShopPanel(BlockManager blockManager, UserEconomy economy) { this.blockManager = blockManager; this.economy = economy; }
+    public Node getView() {
+        VBox root = new VBox(18); root.getStyleClass().add("content");
+        Label intro = new Label("Spend your earned coins on a planned break."); intro.getStyleClass().add("muted");
+        VBox card = new VBox(10); card.getStyleClass().addAll("card", "accent-card");
+        Label title = new Label("YouTube pass — 10 minutes"); title.getStyleClass().add("section-title");
+        Label detail = new Label("Temporarily pauses your YouTube block for 5 coins."); detail.getStyleClass().add("muted");
+        Button buy = new Button("Buy for 5 coins"); buy.getStyleClass().add("primary-button");
+        buy.setOnAction(event -> {
+            if (economy.spendCoins(5)) { blockManager.addPass(new Pass("youtube", 10)); message("Pass purchased", "YouTube is unlocked for 10 minutes."); }
+            else message("Not enough coins", "Keep focusing to earn more coins.");
         });
+        card.getChildren().addAll(title, detail, buy); root.getChildren().addAll(intro, card); return root;
     }
+    private void message(String title, String content) { Alert alert = new Alert(Alert.AlertType.INFORMATION, content); alert.setTitle(title); alert.setHeaderText(null); alert.showAndWait(); }
 }

@@ -1,80 +1,83 @@
-import javax.swing.*;
-import java.awt.*;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
+import javafx.collections.FXCollections;
+import javafx.geometry.Pos;
+import javafx.scene.Node;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.ListCell;
+import javafx.scene.control.ListView;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.VBox;
+import javafx.util.Duration;
 
-public class BlockListPanel extends JPanel {
-    private BlockManager blockManager;
-    private DefaultListModel<String> listModel = new DefaultListModel<>();
-    private JList<String> blockList;
+public class BlockListPanel {
+    private final BlockManager blockManager;
+    private final ListView<Block> list = new ListView<>();
+
     public BlockListPanel(BlockManager blockManager) {
         this.blockManager = blockManager;
-        blockList = new JList<>(listModel);
-        setLayout(new BorderLayout());
-        setBackground(new Color(253, 204, 33));
-
-        javax.swing.Timer listRefreshTimer = new javax.swing.Timer(1000, e -> refreshList());
-        listRefreshTimer.start();
-
-        for (Block b : blockManager.getBlocks()) {
-            String status = b.isActive() ? "[Active]" : "[Inactive]";
-            listModel.addElement(status + " " + b.getTargetName() + " (" + b.getLockType() + ")");
-        }
-
-        blockList = new JList<>(listModel);
-        blockList.setBackground(new Color(20, 20, 20));
-        blockList.setForeground(Color.WHITE);
-        blockList.setFont(new Font("SansSerif", Font.PLAIN, 16));
-
-        add(new JScrollPane(blockList), BorderLayout.CENTER);
-
-        JButton createButton = new JButton("+ Create Block");
-        createButton.setBackground(new Color(20, 20, 20));
-        createButton.setForeground(Color.WHITE);
-        createButton.setFont(new Font("SansSerif", Font.BOLD, 14));
-        createButton.setFocusPainted(false);
-        JPanel buttonPanel = new JPanel(new GridLayout(1, 3, 10, 10));
-        buttonPanel.setBackground(new Color(253, 204, 33));
-        buttonPanel.add(createButton);
-
-        JButton deleteButton = new JButton("Delete Selected");
-        deleteButton.setBackground(new Color(20, 20, 20));
-        deleteButton.setForeground(Color.WHITE);
-        buttonPanel.add(deleteButton);
-
-        JButton toggleButton = new JButton("Toggle Active");
-        toggleButton.setBackground(new Color(20, 20, 20));
-        toggleButton.setForeground(Color.WHITE);
-        buttonPanel.add(toggleButton);
-
-        add(buttonPanel, BorderLayout.SOUTH);
-
-        createButton.addActionListener(e -> {
-            new BlockDialog(blockManager);
-            refreshList();
-        });
-
-        deleteButton.addActionListener(e -> {
-            int index = blockList.getSelectedIndex();
-            if (index != -1) {
-                blockManager.removeBlock(blockManager.getBlocks().get(index));
-                refreshList();
-            }
-        });
-
-        toggleButton.addActionListener(e -> {
-            int index = blockList.getSelectedIndex();
-            if (index != -1) {
-                Block b = blockManager.getBlocks().get(index);
-                b.setActive(!b.isActive());
-                refreshList();
-            }
-        });
+        list.setCellFactory(view -> new BlockCell());
+        refresh();
+        Timeline timer = new Timeline(new KeyFrame(Duration.seconds(1), event -> refresh()));
+        timer.setCycleCount(Timeline.INDEFINITE);
+        timer.play();
     }
-    private void refreshList() {
-        listModel.clear();
-        for (Block b : blockManager.getBlocks()) {
-            String enabled = b.isActive() ? "[Enabled]" : "[Disabled]";
-            String live = b.isCurrentlyBlocking() ? "[Blocking Now]" : "[Not Blocking]";
-            listModel.addElement(enabled + " " + live + " " + b.getTargetName() + " (" + b.getLockType() + ")");
+
+    public Node getView() {
+        BorderPane root = new BorderPane();
+        root.setCenter(list);
+        root.setBottom(createActions());
+        root.getStyleClass().add("content");
+        return root;
+    }
+
+    private Node createActions() {
+        Button create = new Button("+ Create block");
+        create.getStyleClass().add("primary-button");
+        create.setOnAction(event -> new BlockDialog(blockManager).showAndWait().ifPresent(block -> {
+            blockManager.addBlock(block);
+            refresh();
+        }));
+        Button toggle = new Button("Enable / disable");
+        toggle.getStyleClass().add("secondary-button");
+        toggle.setOnAction(event -> {
+            Block block = list.getSelectionModel().getSelectedItem();
+            if (block != null) block.setActive(!block.isActive());
+            refresh();
+        });
+        Button delete = new Button("Delete selected");
+        delete.getStyleClass().add("secondary-button");
+        delete.setOnAction(event -> {
+            Block block = list.getSelectionModel().getSelectedItem();
+            if (block != null) blockManager.removeBlock(block);
+            refresh();
+        });
+        HBox actions = new HBox(10, create, toggle, delete);
+        actions.setAlignment(Pos.CENTER_LEFT);
+        return actions;
+    }
+
+    private void refresh() {
+        Block selected = list.getSelectionModel().getSelectedItem();
+        list.setItems(FXCollections.observableArrayList(blockManager.getBlocks()));
+        if (selected != null) list.getSelectionModel().select(selected);
+    }
+
+    private static class BlockCell extends ListCell<Block> {
+        @Override protected void updateItem(Block block, boolean empty) {
+            super.updateItem(block, empty);
+            if (empty || block == null) { setGraphic(null); return; }
+            VBox details = new VBox(4);
+            Label title = new Label(block.getTargetName());
+            title.getStyleClass().add("section-title");
+            Label status = new Label((block.isActive() ? "Enabled" : "Disabled") + " • " + block.getLockType() +
+                    " • " + (block.isCurrentlyBlocking() ? "Blocking now" : "Not blocking"));
+            status.getStyleClass().add("muted");
+            details.getChildren().addAll(title, status);
+            setGraphic(details);
         }
     }
 }

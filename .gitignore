@@ -1,5 +1,7 @@
 ### IntelliJ IDEA ###
 out/
+target/
+citrus_save.dat
 !**/src/main/**/out/
 !**/src/test/**/out/
 

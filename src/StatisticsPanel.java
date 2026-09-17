@@ -1,72 +1,35 @@
-import javax.swing.*;
-import java.awt.*;
-import javax.swing.table.DefaultTableModel;
-public class StatisticsPanel extends JPanel {
-    private BlockManager blockManager;
-    private UserEconomy economy;
-    private DefaultTableModel tableModel;
-    private JPanel proportionBar;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.scene.Node;
+import javafx.scene.control.Label;
+import javafx.scene.control.ProgressBar;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
+import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.layout.VBox;
+import javafx.util.Duration;
 
-    public StatisticsPanel(BlockManager blockManager, UserEconomy economy) {
-        this.blockManager = blockManager;
-        this.economy = economy;
-        setLayout(new BorderLayout(10, 10));
-        setBackground(new Color(253, 204, 33));
-        setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-
-        add(createProportionBar(), BorderLayout.NORTH);
-        add(createTriggerTable(), BorderLayout.CENTER);
-
-        javax.swing.Timer statsRefreshTimer = new javax.swing.Timer(1000, e -> {
-            refreshTable();
-            proportionBar.repaint();
-        });
-        statsRefreshTimer.start();
-
+public class StatisticsPanel {
+    private final BlockManager blockManager;
+    private final UserEconomy economy;
+    private final ProgressBar progress = new ProgressBar();
+    private final TableView<Block> table = new TableView<>();
+    public StatisticsPanel(BlockManager blockManager, UserEconomy economy) { this.blockManager = blockManager; this.economy = economy; configureTable(); }
+    public Node getView() {
+        VBox root = new VBox(18); root.getStyleClass().add("content");
+        Label goal = new Label("Daily focus goal"); goal.getStyleClass().add("section-title"); progress.setMaxWidth(Double.MAX_VALUE);
+        Label hint = new Label("Progress toward 2 hours of productive time"); hint.getStyleClass().add("muted");
+        root.getChildren().addAll(goal, progress, hint, table); refresh();
+        Timeline refresh = new Timeline(new KeyFrame(Duration.seconds(1), e -> refresh())); refresh.setCycleCount(Timeline.INDEFINITE); refresh.play(); return root;
     }
-
-    private JPanel createProportionBar() {
-        proportionBar = new JPanel() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                double goalMinutes = 120.0;
-                double ratio = Math.min(economy.getTotalProductiveMinutes() / goalMinutes, 1.0);
-                int filledWidth = (int) (getWidth() * ratio);
-                g.setColor(new Color(20, 20, 20));
-                g.fillRect(0, 0, getWidth(), getHeight());
-                g.setColor(new Color(230, 180, 20));
-                g.fillRect(0, 0, filledWidth, getHeight());
-            }
-        };
-        proportionBar.setPreferredSize(new Dimension(400, 30));
-        return proportionBar;
+    private void configureTable() {
+        TableColumn<Block, String> target = new TableColumn<>("Target"); target.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(data.getValue().getTargetName()));
+        TableColumn<Block, String> type = new TableColumn<>("Lock type"); type.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(data.getValue().getLockType().toString()));
+        TableColumn<Block, String> triggers = new TableColumn<>("Times triggered"); triggers.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(String.valueOf(data.getValue().getTimesTriggered())));
+        TableColumn<Block, String> status = new TableColumn<>("Status"); status.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(data.getValue().isActive() ? "Active" : "Inactive"));
+        table.getColumns().addAll(target, type, triggers, status); table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
     }
-
-    private JScrollPane createTriggerTable() {
-        String[] columns = {"Target", "Lock Type", "Times Triggered", "Status"};
-        tableModel = new DefaultTableModel(columns, 0);
-        refreshTable();
-
-        JTable table = new JTable(tableModel);
-        table.setBackground(new Color(20, 20, 20));
-        table.setForeground(Color.WHITE);
-        table.setRowHeight(28);
-        table.getTableHeader().setBackground(new Color(230, 180, 20));
-        table.getTableHeader().setForeground(Color.BLACK);
-        table.setEnabled(false);
-
-        return new JScrollPane(table);
-    }
-    private void refreshTable() {
-        tableModel.setRowCount(0);
-        for (Block b : blockManager.getBlocks()) {
-            tableModel.addRow(new Object[]{
-                    b.getTargetName(),
-                    b.getLockType(),
-                    b.getTimesTriggered(),
-                    b.isActive() ? "Active" : "Inactive"
-            });
-        }
-    }
+    private void refresh() { progress.setProgress(Math.min(economy.getTotalProductiveMinutes() / 120.0, 1)); table.setItems(FXCollections.observableArrayList(blockManager.getBlocks())); }
 }

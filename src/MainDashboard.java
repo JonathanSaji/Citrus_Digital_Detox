@@ -1,158 +1,131 @@
-import javax.swing.*;
-import java.awt.*;
-import java.awt.event.ActionListener;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Node;
+import javafx.scene.control.Label;
+import javafx.scene.control.ToggleButton;
+import javafx.scene.control.ToggleGroup;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
+import javafx.util.Duration;
 
-public class MainDashboard extends JFrame {
-    private UserEconomy economy;
-    private JPanel mainContentPanel;
-    private CardLayout cardLayout;
-    private JLabel coinLabel;
-    private BlockManager blockManager;
+public class MainDashboard {
+    private final BlockManager blockManager;
+    private final UserEconomy economy;
+    private final BorderPane root = new BorderPane();
+    private final StackPane content = new StackPane();
+    private final Label pageTitle = new Label("Dashboard");
+    private final Label coinLabel = new Label();
+    private final ToggleGroup navigation = new ToggleGroup();
 
     public MainDashboard(BlockManager blockManager, UserEconomy economy) {
-        this.economy = economy;
         this.blockManager = blockManager;
-
-        // Window setup
-        setTitle("Citrus - Digital Detox");
-        setSize(900, 600);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLocationRelativeTo(null);
-        setLayout(new BorderLayout());
-
-        // Sidebar Navigation
-        JPanel sidebar = new JPanel();
-        sidebar.setLayout(new GridLayout(6, 1, 10, 10));
-        sidebar.setBackground(new Color(230, 180, 20));
-        sidebar.setPreferredSize(new Dimension(200, 600));
-
-        JLabel titleLabel = new JLabel(" Citrus", SwingConstants.CENTER);
-        titleLabel.setForeground(Color.WHITE);
-        titleLabel.setFont(new Font("SansSerif", Font.BOLD, 18));
-        sidebar.add(titleLabel);
-
-        // Navigation Buttons
-        JButton btnDashboard = createNavButton("Dashboard");
-        JButton btnBlockList = createNavButton("Block List");
-        JButton btnShop = createNavButton("Shop");
-        JButton btnStats = createNavButton("Statistics");
-
-        sidebar.add(btnDashboard);
-        sidebar.add(btnBlockList);
-        sidebar.add(btnShop);
-        sidebar.add(btnStats);
-
-        // Main Content Area (CardLayout switches views)
-        cardLayout = new CardLayout();
-        mainContentPanel = new JPanel(cardLayout);
-        mainContentPanel.setBackground(new Color(253, 204, 33));
-
-        mainContentPanel.add(createDashboardPanel(), "Dashboard");
-        mainContentPanel.add(new BlockListPanel(blockManager),"Block List");
-        mainContentPanel.add(new ShopPanel(blockManager, economy), "Shop");
-        mainContentPanel.add(new StatisticsPanel(blockManager, economy), "Statistics");
-
-        // Top Bar (Coin Balance)
-        JPanel topBar = new JPanel(new FlowLayout(FlowLayout.RIGHT, 20, 10));
-        topBar.setBackground(new Color(230, 180, 20));
-        coinLabel = new JLabel("coins: " + economy.getCoins());
-        coinLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
-        topBar.add(coinLabel);
-
-        // Add action listeners to switch screens
-        btnDashboard.addActionListener(e -> cardLayout.show(mainContentPanel, "Dashboard"));
-        btnBlockList.addActionListener(e -> cardLayout.show(mainContentPanel, "Block List"));
-        btnShop.addActionListener(e -> cardLayout.show(mainContentPanel, "Shop"));
-        btnStats.addActionListener(e -> cardLayout.show(mainContentPanel, "Statistics"));
-
-
-        // Layout Assembly
-        add(sidebar, BorderLayout.WEST);
-        add(topBar, BorderLayout.NORTH);
-        add(mainContentPanel, BorderLayout.CENTER);
-
-        javax.swing.Timer coinRefreshTimer = new javax.swing.Timer(1000, e -> {
-            coinLabel.setText("coins: " + economy.getCoins());
-        });
-        coinRefreshTimer.start();
-
-        setVisible(true);
+        this.economy = economy;
+        root.getStyleClass().add("root");
+        root.setLeft(createSidebar());
+        root.setTop(createTopBar());
+        root.setCenter(content);
+        showPage("Dashboard", createDashboard());
+        Timeline refresh = new Timeline(new KeyFrame(Duration.seconds(1), event ->
+                coinLabel.setText("🍋 " + economy.getCoins() + " coins")));
+        refresh.setCycleCount(Timeline.INDEFINITE);
+        refresh.play();
     }
 
-    private JButton createNavButton(String text) {
-        JButton button = new JButton(text);
-        button.setFocusPainted(false);
-        button.setBackground(new Color(20, 20, 20));
-        button.setForeground(new Color(180, 180, 180));
-        button.setFont(new Font("SansSerif", Font.PLAIN, 14));
+    public BorderPane getView() { return root; }
+
+    private VBox createSidebar() {
+        VBox sidebar = new VBox();
+        sidebar.getStyleClass().add("sidebar");
+        Label brand = new Label("Citrus");
+        brand.getStyleClass().add("brand");
+        Label tagline = new Label("Digital detox, made simple");
+        tagline.getStyleClass().add("muted");
+        VBox.setMargin(tagline, new Insets(0, 0, 26, 0));
+        ToggleButton dashboard = navButton("⌂  Dashboard", true, () -> showPage("Dashboard", createDashboard()));
+        ToggleButton blocks = navButton("◫  My Blocks", false, () -> showPage("My Blocks", new BlockListPanel(blockManager).getView()));
+        ToggleButton shop = navButton("◈  Shop", false, () -> showPage("Shop", new ShopPanel(blockManager, economy).getView()));
+        ToggleButton statistics = navButton("↗  Statistics", false, () -> showPage("Statistics", new StatisticsPanel(blockManager, economy).getView()));
+        ToggleButton settings = navButton("⚙  Settings", false, () -> showPage("Settings", new SettingsPanel(economy).getView()));
+        sidebar.getChildren().addAll(brand, tagline, dashboard, blocks, shop, statistics);
+        VBox spacer = new VBox();
+        VBox.setVgrow(spacer, Priority.ALWAYS);
+        sidebar.getChildren().addAll(spacer, settings);
+        return sidebar;
+    }
+
+    private ToggleButton navButton(String text, boolean selected, Runnable action) {
+        ToggleButton button = new ToggleButton(text);
+        button.getStyleClass().add("nav-button");
+        button.setMaxWidth(Double.MAX_VALUE);
+        button.setToggleGroup(navigation);
+        button.setSelected(selected);
+        button.setOnAction(event -> action.run());
         return button;
     }
 
-    private JPanel createDashboardPanel() {
-        JPanel panel = new JPanel(new GridLayout(2, 2, 20, 20));
-        panel.setBackground(new Color(253, 204, 33));
-        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-
-        JLabel productiveValueLabel = new JLabel("0h 0m", SwingConstants.CENTER);
-        JLabel activeBlocksValueLabel = new JLabel("0", SwingConstants.CENTER);
-
-        panel.add(createLiveCard("Productive Time", productiveValueLabel));
-        panel.add(createLiveCard("Active Blocks", activeBlocksValueLabel));
-        panel.add(createCard("Current Streak", "1 Day 🔥"));
-        panel.add(createCard("Daily Goal", "2h 0m Target"));
-
-        javax.swing.Timer dashboardRefreshTimer = new javax.swing.Timer(1000, e -> {
-            int totalMinutes = (int) economy.getTotalProductiveMinutes();
-            int hours = totalMinutes / 60;
-            int minutes = totalMinutes % 60;
-            productiveValueLabel.setText(hours + "h " + minutes + "m");
-            activeBlocksValueLabel.setText(String.valueOf(blockManager.countActiveBlocks()));
-        });
-        dashboardRefreshTimer.start();
-
-        return panel;
+    private HBox createTopBar() {
+        HBox topBar = new HBox(14);
+        topBar.getStyleClass().add("top-bar");
+        topBar.setAlignment(Pos.CENTER_LEFT);
+        pageTitle.getStyleClass().add("page-title");
+        coinLabel.getStyleClass().add("coin-chip");
+        coinLabel.setText("🍋 " + economy.getCoins() + " coins");
+        HBox spacer = new HBox();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        topBar.getChildren().addAll(pageTitle, spacer, coinLabel);
+        return topBar;
     }
 
-    private JPanel createLiveCard(String title, JLabel valLbl) {
-        JPanel card = new JPanel(new BorderLayout());
-        card.setBackground(new Color(20, 20, 20));
-        card.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+    private void showPage(String title, Node page) {
+        pageTitle.setText(title);
+        content.getChildren().setAll(page);
+    }
 
-        JLabel titleLbl = new JLabel(title);
-        titleLbl.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        titleLbl.setForeground(new Color(180, 180, 180));
+    private Node createDashboard() {
+        VBox view = new VBox(22);
+        view.getStyleClass().add("content");
+        Label welcome = new Label("Your focus space");
+        welcome.getStyleClass().add("section-title");
+        Label subtitle = new Label("Set boundaries for distracting apps, then earn coins while you stay focused.");
+        subtitle.getStyleClass().add("muted");
+        HBox metrics = new HBox(18);
+        metrics.getChildren().addAll(metricCard("Productive time", "time"), metricCard("Blocks active now", "blocks"),
+                staticCard("Daily goal", "2h 0m", "A gentle target for today"));
+        TutorialContent tutorial = new TutorialContent();
+        view.getChildren().addAll(welcome, subtitle, metrics, tutorial.getView());
+        Timeline refresh = new Timeline(new KeyFrame(Duration.seconds(1), event -> {
+            int minutes = (int) economy.getTotalProductiveMinutes();
+            ((Label) metrics.lookup("#time")).setText((minutes / 60) + "h " + (minutes % 60) + "m");
+            ((Label) metrics.lookup("#blocks")).setText(String.valueOf(blockManager.countActiveBlocks()));
+        }));
+        refresh.setCycleCount(Timeline.INDEFINITE);
+        refresh.play();
+        return view;
+    }
 
-        valLbl.setFont(new Font("SansSerif", Font.BOLD, 26));
-        valLbl.setForeground(Color.WHITE);
-
-        card.add(titleLbl, BorderLayout.NORTH);
-        card.add(valLbl, BorderLayout.CENTER);
+    private VBox metricCard(String title, String id) {
+        VBox card = staticCard(title, "0", "Live update");
+        ((Label) card.lookup(".metric-value")).setId(id);
         return card;
     }
 
-    private JPanel createCard(String title, String value) {
-        JPanel card = new JPanel(new BorderLayout());
-        card.setBackground(new Color(20, 20, 20)); // Black card background
-        card.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-
-        JLabel titleLbl = new JLabel(title);
-        titleLbl.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        titleLbl.setForeground(new Color(180, 180, 180)); // Soft gray text
-
-        JLabel valLbl = new JLabel(value, SwingConstants.CENTER);
-        valLbl.setFont(new Font("SansSerif", Font.BOLD, 26));
-        valLbl.setForeground(Color.WHITE); // Bold white text
-
-        card.add(titleLbl, BorderLayout.NORTH);
-        card.add(valLbl, BorderLayout.CENTER);
+    private VBox staticCard(String title, String value, String detail) {
+        VBox card = new VBox(8);
+        card.getStyleClass().add("card");
+        card.setPrefWidth(230);
+        HBox.setHgrow(card, Priority.ALWAYS);
+        Label label = new Label(title);
+        label.getStyleClass().add("metric-label");
+        Label metric = new Label(value);
+        metric.getStyleClass().add("metric-value");
+        Label description = new Label(detail);
+        description.getStyleClass().add("muted");
+        card.getChildren().addAll(label, metric, description);
         return card;
     }
-    private JPanel createDummyPanel(String title) {
-        JPanel panel = new JPanel(new GridBagLayout());
-        JLabel label = new JLabel(title);
-        label.setFont(new Font("SansSerif", Font.BOLD, 20));
-        panel.add(label);
-        return panel;
-    }
-
-    }
+}

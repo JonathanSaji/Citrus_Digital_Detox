@@ -2,7 +2,7 @@ import com.sun.jna.platform.win32.Kernel32;
 import com.sun.jna.Native;
 import com.sun.jna.platform.win32.User32;
 import com.sun.jna.platform.win32.WinDef.HWND;
-import javax.swing.SwingUtilities;
+import javafx.application.Platform;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -46,6 +46,13 @@ public class WindowMonitor {
         }, 0, 300);
     }
 
+    public void stopMonitoring() {
+        if (monitoringTimer != null) {
+            monitoringTimer.cancel();
+            monitoringTimer = null;
+        }
+    }
+
     private void updateOverlay(Block match) {
         if (match != null) {
             synchronized (overlayLock) {
@@ -54,7 +61,7 @@ public class WindowMonitor {
             }
 
             match.incrementTriggerCount();
-            SwingUtilities.invokeLater(() -> {
+            Platform.runLater(() -> {
                 synchronized (overlayLock) {
                     if (!overlayCreationPending) return;
                     currentOverlay = new BlockOverlay(match, blockManager);
@@ -71,7 +78,7 @@ public class WindowMonitor {
             currentOverlay = null;
         }
         if (overlayToClose != null) {
-            SwingUtilities.invokeLater(overlayToClose::dispose);
+            Platform.runLater(overlayToClose::dispose);
         }
     }
     public long getIdleSeconds() {
