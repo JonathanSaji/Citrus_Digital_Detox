@@ -1,7 +1,6 @@
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.geometry.Insets;
-import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.ToggleButton;
@@ -11,6 +10,8 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Circle;
 import javafx.util.Duration;
 
 public class MainDashboard {
@@ -18,7 +19,6 @@ public class MainDashboard {
     private final UserEconomy economy;
     private final BorderPane root = new BorderPane();
     private final StackPane content = new StackPane();
-    private final Label pageTitle = new Label("Dashboard");
     private final Label coinLabel = new Label();
     private final ToggleGroup navigation = new ToggleGroup();
 
@@ -27,11 +27,11 @@ public class MainDashboard {
         this.economy = economy;
         root.getStyleClass().add("root");
         root.setLeft(createSidebar());
-        root.setTop(createTopBar());
-        root.setCenter(content);
-        showPage("Dashboard", createDashboard());
+        StackPane mainArea = new StackPane(content, createCoinDisplay());
+        root.setCenter(mainArea);
+        showPage(createDashboard());
         Timeline refresh = new Timeline(new KeyFrame(Duration.seconds(1), event ->
-                coinLabel.setText("🍋 " + economy.getCoins() + " coins")));
+                coinLabel.setText(String.valueOf(economy.getCoins()))));
         refresh.setCycleCount(Timeline.INDEFINITE);
         refresh.play();
     }
@@ -41,17 +41,20 @@ public class MainDashboard {
     private VBox createSidebar() {
         VBox sidebar = new VBox();
         sidebar.getStyleClass().add("sidebar");
+        HBox brandRow = new HBox(10, lemonIcon());
+        brandRow.getStyleClass().add("brand-row");
         Label brand = new Label("Citrus");
         brand.getStyleClass().add("brand");
+        brandRow.getChildren().add(brand);
         Label tagline = new Label("Digital detox, made simple");
         tagline.getStyleClass().add("muted");
         VBox.setMargin(tagline, new Insets(0, 0, 26, 0));
-        ToggleButton dashboard = navButton("⌂  Dashboard", true, () -> showPage("Dashboard", createDashboard()));
-        ToggleButton blocks = navButton("◫  My Blocks", false, () -> showPage("My Blocks", new BlockListPanel(blockManager).getView()));
-        ToggleButton shop = navButton("◈  Shop", false, () -> showPage("Shop", new ShopPanel(blockManager, economy).getView()));
-        ToggleButton statistics = navButton("↗  Statistics", false, () -> showPage("Statistics", new StatisticsPanel(blockManager, economy).getView()));
-        ToggleButton settings = navButton("⚙  Settings", false, () -> showPage("Settings", new SettingsPanel(economy).getView()));
-        sidebar.getChildren().addAll(brand, tagline, dashboard, blocks, shop, statistics);
+        ToggleButton dashboard = navButton("⌂  Dashboard", true, () -> showPage(createDashboard()));
+        ToggleButton blocks = navButton("◫  My Blocks", false, () -> showPage(new BlockListPanel(blockManager).getView()));
+        ToggleButton shop = navButton("◈  Shop", false, () -> showPage(new ShopPanel(blockManager, economy).getView()));
+        ToggleButton statistics = navButton("↗  Statistics", false, () -> showPage(new StatisticsPanel(blockManager, economy).getView()));
+        ToggleButton settings = navButton("⚙  Settings", false, () -> showPage(new SettingsPanel(economy).getView()));
+        sidebar.getChildren().addAll(brandRow, tagline, dashboard, blocks, shop, statistics);
         VBox spacer = new VBox();
         VBox.setVgrow(spacer, Priority.ALWAYS);
         sidebar.getChildren().addAll(spacer, settings);
@@ -68,22 +71,32 @@ public class MainDashboard {
         return button;
     }
 
-    private HBox createTopBar() {
-        HBox topBar = new HBox(14);
-        topBar.getStyleClass().add("top-bar");
-        topBar.setAlignment(Pos.CENTER_LEFT);
-        pageTitle.getStyleClass().add("page-title");
-        coinLabel.getStyleClass().add("coin-chip");
-        coinLabel.setText("🍋 " + economy.getCoins() + " coins");
-        HBox spacer = new HBox();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
-        topBar.getChildren().addAll(pageTitle, spacer, coinLabel);
-        return topBar;
+    private HBox createCoinDisplay() {
+        HBox display = new HBox(8, coinIcon(), coinLabel);
+        display.getStyleClass().add("coin-chip");
+        StackPane.setAlignment(display, javafx.geometry.Pos.TOP_RIGHT);
+        StackPane.setMargin(display, new Insets(22, 30, 0, 0));
+        coinLabel.setText(String.valueOf(economy.getCoins()));
+        return display;
     }
 
-    private void showPage(String title, Node page) {
-        pageTitle.setText(title);
+    private void showPage(Node page) {
         content.getChildren().setAll(page);
+    }
+
+    private Node lemonIcon() {
+        Circle outer = new Circle(16, Color.web("#FDCC21"));
+        Circle inner = new Circle(10, Color.web("#FFF8D9"));
+        Circle center = new Circle(3, Color.web("#FDCC21"));
+        return new StackPane(outer, inner, center);
+    }
+
+    private Node coinIcon() {
+        Circle outer = new Circle(13, Color.web("#E5B600"));
+        Circle inner = new Circle(10, Color.web("#FDCC21"));
+        Label symbol = new Label("C");
+        symbol.setStyle("-fx-font-size: 11px; -fx-font-weight: 800; -fx-text-fill: #8A6900;");
+        return new StackPane(outer, inner, symbol);
     }
 
     private Node createDashboard() {
