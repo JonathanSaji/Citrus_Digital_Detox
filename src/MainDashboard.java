@@ -22,7 +22,7 @@ public class MainDashboard extends JFrame {
 
         // Sidebar Navigation
         JPanel sidebar = new JPanel();
-        sidebar.setLayout(new GridLayout(7, 1, 10, 10));
+        sidebar.setLayout(new GridLayout(6, 1, 10, 10));
         sidebar.setBackground(new Color(230, 180, 20));
         sidebar.setPreferredSize(new Dimension(200, 600));
 
@@ -33,16 +33,14 @@ public class MainDashboard extends JFrame {
 
         // Navigation Buttons
         JButton btnDashboard = createNavButton("Dashboard");
-        JButton btnBlockList = createNavButton("Blocks");
+        JButton btnBlockList = createNavButton("Block List");
         JButton btnShop = createNavButton("Shop");
         JButton btnStats = createNavButton("Statistics");
-        JButton btnSettings = createNavButton("Settings");
 
         sidebar.add(btnDashboard);
         sidebar.add(btnBlockList);
         sidebar.add(btnShop);
         sidebar.add(btnStats);
-        sidebar.add(btnSettings);
 
         // Main Content Area (CardLayout switches views)
         cardLayout = new CardLayout();
@@ -53,39 +51,25 @@ public class MainDashboard extends JFrame {
         mainContentPanel.add(new BlockListPanel(blockManager),"Block List");
         mainContentPanel.add(new ShopPanel(blockManager, economy), "Shop");
         mainContentPanel.add(new StatisticsPanel(blockManager, economy), "Statistics");
-        mainContentPanel.add(new SettingsPanel(), "Settings");
 
-        // Persistent shell header: the badge stays mounted while CardLayout changes views.
-        JPanel applicationShell = new JPanel(new BorderLayout());
-        applicationShell.setBackground(new Color(253, 204, 33));
-
-        JPanel header = new JPanel(new FlowLayout(FlowLayout.RIGHT, 20, 10));
-        header.setOpaque(false);
+        // Top Bar (Coin Balance)
+        JPanel topBar = new JPanel(new FlowLayout(FlowLayout.RIGHT, 20, 10));
+        topBar.setBackground(new Color(230, 180, 20));
         coinLabel = new JLabel("coins: " + economy.getCoins());
         coinLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
-        coinLabel.setForeground(Color.WHITE);
-        coinLabel.setBackground(new Color(20, 20, 20));
-        coinLabel.setOpaque(true);
-        coinLabel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(230, 180, 20), 2),
-                BorderFactory.createEmptyBorder(6, 12, 6, 12)
-        ));
-        header.add(coinLabel);
-
-        applicationShell.add(header, BorderLayout.NORTH);
-        applicationShell.add(mainContentPanel, BorderLayout.CENTER);
+        topBar.add(coinLabel);
 
         // Add action listeners to switch screens
         btnDashboard.addActionListener(e -> cardLayout.show(mainContentPanel, "Dashboard"));
         btnBlockList.addActionListener(e -> cardLayout.show(mainContentPanel, "Block List"));
         btnShop.addActionListener(e -> cardLayout.show(mainContentPanel, "Shop"));
         btnStats.addActionListener(e -> cardLayout.show(mainContentPanel, "Statistics"));
-        btnSettings.addActionListener(e -> cardLayout.show(mainContentPanel, "Settings"));
 
 
         // Layout Assembly
         add(sidebar, BorderLayout.WEST);
-        add(applicationShell, BorderLayout.CENTER);
+        add(topBar, BorderLayout.NORTH);
+        add(mainContentPanel, BorderLayout.CENTER);
 
         javax.swing.Timer coinRefreshTimer = new javax.swing.Timer(1000, e -> {
             coinLabel.setText("coins: " + economy.getCoins());
